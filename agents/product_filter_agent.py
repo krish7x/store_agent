@@ -1,39 +1,15 @@
-import os
-import mysql.connector
-from langchain_google_genai import ChatGoogleGenerativeAI
+import logging
+from llm import get_llm
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 from langchain_core.tools import tool
 from state.state import State
-from mysql.connector import Error
-from dotenv import load_dotenv
-import logging
+from helpers.db_helper import get_db_connection
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv()
-
-# CaratLane Stage Database connection parameters
-DB_HOST = os.getenv("DB_HOST")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_NAME = os.getenv("DB_NAME")
-
-llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-lite", temperature=0)
-
-
-def get_db_connection():
-    """Establish and return a connection to the CaratLane Stage MySQL database."""
-    try:
-        conn = mysql.connector.connect(
-            host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_NAME
-        )
-        return conn
-    except Error as e:
-        print(f"Error connecting to CaratLane Stage Database: {e}")
-        return None
+llm = get_llm()
 
 
 @tool

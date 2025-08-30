@@ -1,14 +1,14 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
+import logging
+from llm import get_llm
 from langchain_core.messages import SystemMessage, HumanMessage
 from state.state import State
-import logging
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize the LLM
-llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-lite", temperature=0)
+llm = get_llm()
 
 
 def call_model(state: State):

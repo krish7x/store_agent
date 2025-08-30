@@ -12,13 +12,13 @@ TODO:
 Status: Not Implemented
 """
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+from llm import get_llm
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langgraph.graph import StateGraph, START, END
 from state import State
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-lite", temperature=0)
+llm = get_llm()
 
 
 prompt_txt = """
