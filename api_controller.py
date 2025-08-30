@@ -2,7 +2,7 @@ import logging
 from fastapi import FastAPI, HTTPException
 from agents.orchestrator_agent import invoke_orchestrator
 from helpers.api_helper import extract_summary_content, extract_result_content
-from model import ChatResponse, ChatRequest
+from api_model import ChatResponse, ChatRequest
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
