@@ -1,6 +1,6 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage
-from state import State
+from state.state import State
 import logging
 
 # Configure logging
@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize the LLM
 llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-lite", temperature=0)
+
 
 def call_model(state: State):
     """Generate a summary from the SQL query results."""
@@ -44,15 +45,9 @@ def call_model(state: State):
 
         logger.info("Summary generated successfully")
 
-        return {
-            "chat_history": updated_chat_history,
-            "response": response
-        }
+        return {"chat_history": updated_chat_history, "response": response}
 
     except Exception as e:
         logger.error(f"Error in summary generation: {e}")
         # Return the original chat history if there's an error
-        return {
-            "chat_history": chat_history,
-            "response": None
-        }
+        return {"chat_history": chat_history, "response": None}

@@ -3,7 +3,7 @@ import mysql.connector
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 from langchain_core.tools import tool
-from state import State
+from state.state import State
 from mysql.connector import Error
 from dotenv import load_dotenv
 import logging
