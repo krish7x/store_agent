@@ -2,3 +2,11 @@
 pycache/
 query_executed.txt
 __pycache__/
+.DS_Store
+.vscode/
+venv/
+.env.local
+.env.production
+.env.development
+.env.test
+.env.staging
