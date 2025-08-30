@@ -1,0 +1,26 @@
+# Core LangChain dependencies
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-google-genai>=1.0.0
+langchain-community>=0.1.0
+
+# LangGraph for agent workflows
+langgraph>=0.1.0
+
+# Data processing and analysis
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Database connectivity
+mysql-connector-python>=8.0.0
+
+# HTTP requests
+requests>=2.31.0
+
+# Google Generative AI (required for ChatGoogleGenerativeAI)
+google-generativeai>=0.8.0
+
+# Optional: For better performance and compatibility
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+typing-extensions>=4.0.0
