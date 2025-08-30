@@ -1,3 +1,4 @@
 .env
 pycache/
 query_executed.txt
+__pycache__/

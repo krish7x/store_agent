@@ -9,3 +9,7 @@ class State(TypedDict):
     result: str
     answer: str
     chat_history: List[BaseMessage]
+    selected_agent: str
+    response: str
+    cart: List
+    store_code: str
