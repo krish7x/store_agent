@@ -7,10 +7,6 @@ langchain-community>=0.1.0
 # LangGraph for agent workflows
 langgraph>=0.1.0
 
-# Data processing and analysis
-numpy>=1.24.0
-pandas>=2.0.0
-
 # Database connectivity
 mysql-connector-python>=8.0.0
 
