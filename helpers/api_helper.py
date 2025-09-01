@@ -76,4 +76,4 @@ def extract_result_content(orchestrator_result: dict) -> tuple:
                     continue
 
     # If we didn't find tool results, return fallback
-    return {"message": "Query processed successfully"}, sql_query
+    return {"message": "User query processed successfully"}, sql_query

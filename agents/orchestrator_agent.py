@@ -1,70 +1,77 @@
 import logging
+from typing import Literal
 from langgraph.graph import StateGraph, START, END
-from agents.product_filter_agent import call_model, execute_tool
-from agents.summary_agent import call_model as summary_call_model
+from langchain_core.messages import SystemMessage, HumanMessage
+from llm import get_llm
 from state.state import State
+from agents.product_filter_agent import product_filter_node, query_executor_node
+from agents.summary_agent import summary_node
+from agents.store_analysis_agent import store_analysis_node
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+llm = get_llm()
+
+ROUTER_PROMPT_SHORT = (
+    "Classify the user query for routing. Reply with ONLY one token:\n"
+    "- product_filter_node  → product-related search/filter queries such as 'jewellery_type,' 'metal,' 'purity,' 'relationship,' 'occasion,' 'price,' etc. that need SQL over products\n"
+    "- store_analysis_node  → if it contains store in the query, store performance/ASP/trends/strategy/business insights which needs deep analysis of the store's data\n"
+    "No extra words."
+)
+
 
 def orchestrator(state: State):
-    """Orchestrator node that routes the initial query to SQL generation."""
-    logger.info("Orchestrator: Starting SQL generation")
-    return {"chat_history": state["chat_history"], "query": state["query"]}
+    logger.info("Orchestrator: Routing start")
+    return {
+        "chat_history": state.get("chat_history", []),
+        "query": state.get("query", ""),
+    }
 
 
-def sql_call_model(state: State):
-    """Call the SQL model to generate SQL query."""
-    logger.info("SQL Call Model: Generating SQL query")
-    result = call_model(state)
-    return result
+def route_via_llm(
+    state: State,
+) -> Literal["product_filter_node", "store_analysis_node"]:
+    query = (state.get("query") or "").strip()
+    messages = [SystemMessage(content=ROUTER_PROMPT_SHORT), HumanMessage(content=query)]
+    response = llm.invoke(messages)
+    logger.info(f"Decision: {response.content}")
+    decision = (response.content or "").strip().lower()
+    return decision
 
 
-def sql_execute_tool(state: State):
-    """Execute the SQL tool with the generated query."""
-    logger.info("SQL Execute Tool: Executing SQL query")
-    result = execute_tool(state)
-    return result
-
-
-def summary_generation(state: State):
-    """Generate summary from the SQL results."""
-    logger.info("Summary Generation: Creating summary")
-    result = summary_call_model(state)
-    return result
-
-
-# Create the graph
 def create_orchestrator_graph():
-    """Create the orchestrator graph with linear flow."""
     builder = StateGraph(State)
 
-    # Add nodes
     builder.add_node("orchestrator", orchestrator)
-    builder.add_node("sql_call_model", sql_call_model)
-    builder.add_node("sql_execute_tool", sql_execute_tool)
-    builder.add_node("summary_generation", summary_generation)
+    builder.add_node("product_filter_node", product_filter_node)
+    builder.add_node("query_executor_node", query_executor_node)
+    builder.add_node("summary_node", summary_node)
+    builder.add_node("store_analysis_node", store_analysis_node)
 
-    # Linear flow: START -> orchestrator -> sql_call_model -> sql_execute_tool -> summary_generation -> END
     builder.add_edge(START, "orchestrator")
-    builder.add_edge("orchestrator", "sql_call_model")
-    builder.add_edge("sql_call_model", "sql_execute_tool")
-    builder.add_edge("sql_execute_tool", "summary_generation")
-    builder.add_edge("summary_generation", END)
+    builder.add_conditional_edges(
+        "orchestrator",
+        route_via_llm,
+        {
+            "product_filter_node": "product_filter_node",
+            "store_analysis_node": "store_analysis_node",
+        },
+    )
+
+    builder.add_edge("product_filter_node", "query_executor_node")
+    builder.add_edge("query_executor_node", "summary_node")
+    builder.add_edge("summary_node", END)
+    builder.add_edge("store_analysis_node", END)
 
     return builder.compile()
 
 
-# Create the graph instance
 orchestrator_graph = create_orchestrator_graph()
 
 
 def invoke_orchestrator(query: str) -> dict:
-    """Invoke the orchestrator with a user query."""
     try:
-        # Initialize state
         initial_state = {
             "query": query,
             "chat_history": [],
@@ -72,19 +79,9 @@ def invoke_orchestrator(query: str) -> dict:
             "cart": [],
             "store_code": None,
         }
-
-        # Run the graph
         result = orchestrator_graph.invoke(initial_state)
         logger.info("Orchestrator completed successfully")
         return result
-
     except Exception as e:
         logger.error(f"Error in orchestrator: {e}")
         return {"error": str(e), "chat_history": [], "query": query}
-
-
-if __name__ == "__main__":
-    # Test the orchestrator
-    test_query = "Show me rings in rose gold under 50k"
-    result = invoke_orchestrator(test_query)
-    print("Orchestrator Result:", result)

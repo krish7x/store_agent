@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 llm = get_llm()
 
 
-def call_model(state: State):
+def summary_node(state: State):
     """Generate a summary from the SQL query results."""
     try:
         chat_history = state.get("chat_history", [])
@@ -24,6 +24,7 @@ def call_model(state: State):
         - Number of products found
         - Key characteristics (price range, material, etc.)
         - Any relevant insights
+        - Currency is INR
 
         Keep the summary concise and informative."""
 

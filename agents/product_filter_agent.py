@@ -167,7 +167,7 @@ tools = [execute_sql_query]
 llm_with_tools = llm.bind_tools(tools)
 
 
-def call_model(state: State):
+def product_filter_node(state: State):
     """Call the LLM to generate SQL queries based on user input."""
     try:
         chat_history = state.get("chat_history", [])
@@ -254,7 +254,7 @@ def call_model(state: State):
         return {"chat_history": chat_history, "response": None}
 
 
-def execute_tool(state: State):
+def query_executor_node(state: State):
     """Execute the tool calls from the LLM response."""
     try:
         chat_history = state.get("chat_history", [])
