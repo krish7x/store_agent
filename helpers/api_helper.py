@@ -37,17 +37,22 @@ def extract_result_content(orchestrator_result: dict) -> tuple:
     # Look for tool results in chat history
     chat_history = orchestrator_result.get("chat_history", [])
 
-    # Find the ToolMessage that contains the SQL execution results
-    for msg in chat_history:
-        if hasattr(msg, "type") and msg.type == "tool":
+    # Find the AIMessage that contains the SQL execution results (now using AIMessage instead of ToolMessage)
+    # Iterate in reverse to get the most recent results
+    for msg in reversed(chat_history):
+        if hasattr(msg, "type") and msg.type == "ai":
             content = str(msg.content)
             # This should contain the SQL results with count, results, query
-            if "count" in content and "results" in content:
+            if "SQL Query Result:" in content:
                 try:
                     import json
 
+                    # Extract the JSON part after "SQL Query Result: "
+                    json_start = content.find("SQL Query Result: ") + len("SQL Query Result: ")
+                    json_content = content[json_start:].strip()
+
                     # Parse the JSON content from the tool message
-                    parsed_result = json.loads(content)
+                    parsed_result = json.loads(json_content)
                     if isinstance(parsed_result, dict):
                         # Extract the SQL query
                         if "query" in parsed_result:
@@ -70,9 +75,11 @@ def extract_result_content(orchestrator_result: dict) -> tuple:
 
                 except json.JSONDecodeError as e:
                     logger.warning(f"Failed to parse tool result as JSON: {e}")
+                    logger.warning(f"Content was: {content}")
                     continue
                 except Exception as e:
                     logger.warning(f"Failed to parse tool result: {e}")
+                    logger.warning(f"Content was: {content}")
                     continue
 
     # If we didn't find tool results, return fallback

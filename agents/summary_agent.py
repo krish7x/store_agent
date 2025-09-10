@@ -31,8 +31,10 @@ def summary_node(state: State):
         # Create messages for the LLM
         messages = [SystemMessage(content=system_prompt)]
 
-        # Add the chat history to provide context
-        messages.extend(chat_history)
+        # Add the chat history to provide context, filtering out empty messages
+        for msg in chat_history:
+            if hasattr(msg, 'content') and msg.content and str(msg.content).strip():
+                messages.append(msg)
 
         # Add the user query for context
         if query:

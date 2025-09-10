@@ -1,6 +1,6 @@
 import logging
 from llm import get_llm
-from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.tools import tool
 from state.state import State
 from helpers.db_helper import get_db_connection
@@ -181,19 +181,19 @@ def product_filter_node(state: State):
         Available tables:
         - product: Contains product details like sku, price, metal, purity, jewellery_type, etc.
 
-        **EXACT COLUMN VALUES - USE THESE EXACTLY:**
+        EXACT COLUMN VALUES - USE THESE EXACTLY:
 
-        **jewellery_type**: Rings, Earrings, Pendants, Necklaces, Bangles, Mangalsutra, Tanmaniya, Silver Rakhi, Bracelets, Nose pin, Mount-Rings, Mount-Earrings, Mount-Pendants, Kada, Charms, Chains, Toe Rings, Anklets, Set Product, Nose Accessories, Silver Articles, Adjustable Rings, Hair Accessories, CuffLinks, Brooch, Brooches, Sets, Watch Charms, Nacklace, Silver Coin, Gold Coin, Baby Bangles, Wrist Watches, Arm Bands, Waist Bands, Earring, Dummy Product, Kanoti, Hasli Necklaces, Kurta Buttons, Bracelet, Charm Builders, Nath
+        jewellery_type: Rings, Earrings, Pendants, Necklaces, Bangles, Mangalsutra, Tanmaniya, Silver Rakhi, Bracelets, Nose pin, Mount-Rings, Mount-Earrings, Mount-Pendants, Kada, Charms, Chains, Toe Rings, Anklets, Set Product, Nose Accessories, Silver Articles, Adjustable Rings, Hair Accessories, CuffLinks, Brooch, Brooches, Sets, Watch Charms, Nacklace, Silver Coin, Gold Coin, Baby Bangles, Wrist Watches, Arm Bands, Waist Bands, Earring, Dummy Product, Kanoti, Hasli Necklaces, Kurta Buttons, Bracelet, Charm Builders, Nath
 
-        **metal**: 14 KT White, 18 KT Yellow, 18 KT White, 14 KT Two Tone, 14 KT Yellow, 18 KT Two Tone, 14 KT Rose, Silver 925 Silver, 18 KT Rose, Platinum 950 Platinum, 22 KT Yellow, Platinum 950 White, 14 KT, 18 KT Three Tone, Brass Silver, Platinum 950 18 KT Two Tone, 14 KT Three Tone, 18 KT, 9 KT Yellow, 14 KT S925 Yellow, 10 KT Yellow, Silver 925 Yellow, Silver 999 Silver, Silver 925 White, Platinum 950 Two Tone, 22 KT Two Tone, 24 KT Yellow, Silver 925 Rose, 10 KT Rose, Platinum 950 18 KT Three Tone, 22 KT White, 9 KT Rose, Platinum 950 18 KT Two Tone Platinum Rose, 14 KT S925 White, 18 KT S925 White, 18 KT S925 Rose, 18 KT S925 Yellow, 10 KT White, 9 KT White
+        metal: 14 KT White, 18 KT Yellow, 18 KT White, 14 KT Two Tone, 14 KT Yellow, 18 KT Two Tone, 14 KT Rose, Silver 925 Silver, 18 KT Rose, Platinum 950 Platinum, 22 KT Yellow, Platinum 950 White, 14 KT, 18 KT Three Tone, Brass Silver, Platinum 950 18 KT Two Tone, 14 KT Three Tone, 18 KT, 9 KT Yellow, 14 KT S925 Yellow, 10 KT Yellow, Silver 925 Yellow, Silver 999 Silver, Silver 925 White, Platinum 950 Two Tone, 22 KT Two Tone, 24 KT Yellow, Silver 925 Rose, 10 KT Rose, Platinum 950 18 KT Three Tone, 22 KT White, 9 KT Rose, Platinum 950 18 KT Two Tone Platinum Rose, 14 KT S925 White, 18 KT S925 White, 18 KT S925 Rose, 18 KT S925 Yellow, 10 KT White, 9 KT White
 
-        **purity**: 14 KT, 18 KT, Silver 925, Platinum 950, 22 KT, Brass, Platinum 950 18 KT, 9 KT, 14 KT S925, 10 KT, Silver 999, 24 KT, 18 KT S925
+        purity: 14 KT, 18 KT, Silver 925, Platinum 950, 22 KT, Brass, Platinum 950 18 KT, 9 KT, 14 KT S925, 10 KT, Silver 999, 24 KT, 18 KT S925
 
-        **relationship**: Grandparent, Wife, Girlfriend, Husband, Sister, Others, Daughter, Son, Father, Niece/Nephew, Mother, Friend, Self
+        relationship: Grandparent, Wife, Girlfriend, Husband, Sister, Others, Daughter, Son, Father, Niece/Nephew, Mother, Friend, Self
 
-        **occasion**: anniversary, diwali, christmas, dhanteras, valentines_day, mothers_day, general_gifting, akshaya_tritiya, wedding_season, raksha_bandhan, karva_chauth, ganesh_chaturthi, fathers_day, navratri, new_year
+        occasion: anniversary, diwali, christmas, dhanteras, valentines_day, mothers_day, general_gifting, akshaya_tritiya, wedding_season, raksha_bandhan, karva_chauth, ganesh_chaturthi, fathers_day, navratri, new_year
 
-        **USER QUERY MAPPING EXAMPLES**:
+        USER QUERY MAPPING EXAMPLES:
         - "ring for my grandpa" → jewellery_type = "Rings" AND relationship = "Grandparent"
         - "earrings for wife" → jewellery_type = "Earrings" AND relationship = "Wife"
         - "14 KT white gold" → metal = "14 KT White"
@@ -219,6 +219,17 @@ def product_filter_node(state: State):
         - For expensive items, consider ORDER BY price DESC
         - For budget items, consider ORDER BY price ASC
 
+        Pagination Logic:
+        - If user asks "show more", "load more", "next page", or similar pagination requests:
+          1. Go through the chat history and find the LAST executed SQL query that contains a LIMIT clause
+          2. Extract the LIMIT value from that query
+          3. Check if the query already has an OFFSET clause:
+             - If NO OFFSET: Add OFFSET with value equal to the LIMIT value
+             - If OFFSET exists: Add the LIMIT value to the existing OFFSET value
+          4. Execute the modified query with the new OFFSET
+        - Example: If last query was "SELECT * FROM product LIMIT 10", the next query should be "SELECT * FROM product LIMIT 10 OFFSET 10"
+        - Example: If last query was "SELECT * FROM product LIMIT 10 OFFSET 20", the next query should be "SELECT * FROM product LIMIT 10 OFFSET 30"
+
         Examples:
         - "Show me top 5 expensive rings" → SELECT ... ORDER BY price DESC LIMIT 5
         - "Show me 3 cheapest earrings" → SELECT ... ORDER BY price ASC LIMIT 3
@@ -231,12 +242,105 @@ def product_filter_node(state: State):
         # Create messages for the LLM
         messages = [SystemMessage(content=system_prompt)]
 
-        # Add the chat history to provide context
-        messages.extend(chat_history)
+        # Add the chat history to provide context, filtering out empty messages
+        for msg in chat_history:
+            if hasattr(msg, "content") and msg.content and str(msg.content).strip():
+                messages.append(msg)
+
+        # Add pagination context if this is a pagination request
+        pagination_keywords = [
+            "show more",
+            "load more",
+            "next page",
+            "more results",
+            "continue",
+            "pagination",
+            "more",
+            "next",
+            "additional",
+            "further",
+        ]
+        if query and any(keyword in query.lower() for keyword in pagination_keywords):
+            # Find the last query with LIMIT clause from chat history
+            last_query_with_limit = None
+            for msg in reversed(chat_history):
+                if hasattr(msg, "content") and msg.content:
+                    content = str(msg.content)
+                    if "SQL Query Result:" in content:
+                        try:
+                            import json
+
+                            json_start = content.find("SQL Query Result: ") + len(
+                                "SQL Query Result: "
+                            )
+                            json_content = content[json_start:].strip()
+                            result_data = json.loads(json_content)
+                            query_text = result_data.get("query", "")
+                            if "LIMIT" in query_text:
+                                last_query_with_limit = query_text
+                                break
+                        except:  # noqa: E722
+                            continue
+
+            if last_query_with_limit:
+                pagination_context = f"""
+
+        PAGINATION ANALYSIS REQUIRED:
+        You need to paginate the following query by adding OFFSET:
+
+        LAST QUERY: {last_query_with_limit}
+
+        CRITICAL: You MUST add OFFSET to this exact query. Do not create a new query.
+
+        Steps:
+        1. Extract the LIMIT value from the query above
+        2. Check if OFFSET already exists
+        3. Create a new query with appropriate OFFSET:
+           - If no OFFSET: add OFFSET equal to LIMIT value
+           - If OFFSET exists: add LIMIT value to existing OFFSET
+        4. Execute the modified query using the execute_sql_query tool
+
+        Example:
+        - Last query: "SELECT * FROM product WHERE metal = 'Gold' LIMIT 20"
+        - New query: "SELECT * FROM product WHERE metal = 'Gold' LIMIT 20 OFFSET 20"
+
+        IMPORTANT: You must use the execute_sql_query tool to run the paginated query.
+        """
+            else:
+                pagination_context = """
+
+        PAGINATION ANALYSIS REQUIRED:
+        You need to analyze the chat history above to find the LAST executed SQL query with a LIMIT clause.
+        Look for messages that contain "SQL Query Result:" and extract the query from the JSON content.
+        Find the most recent query that has a LIMIT clause, then modify it to add or increment the OFFSET.
+
+        CRITICAL: You MUST find the last query with LIMIT and add OFFSET to it. Do not create a new query.
+
+        Steps:
+        1. Search through all previous messages for "SQL Query Result:"
+        2. Parse the JSON content to extract the "query" field
+        3. Find the most recent query that contains "LIMIT"
+        4. Extract the LIMIT value (e.g., LIMIT 20)
+        5. Check if OFFSET exists in that query
+        6. Create a new query with appropriate OFFSET:
+           - If no OFFSET: add OFFSET equal to LIMIT value
+           - If OFFSET exists: add LIMIT value to existing OFFSET
+        7. Execute the modified query using the execute_sql_query tool
+
+        Example:
+        - Last query: "SELECT * FROM product WHERE metal = 'Gold' LIMIT 20"
+        - New query: "SELECT * FROM product WHERE metal = 'Gold' LIMIT 20 OFFSET 20"
+
+        IMPORTANT: You must use the execute_sql_query tool to run the paginated query.
+        """
+            messages.append(SystemMessage(content=pagination_context))
 
         # Add the user query
-        if query:
+        if query and query.strip():
             messages.append(HumanMessage(content=query))
+        else:
+            logger.warning("Empty or invalid query provided")
+            return {"chat_history": chat_history, "response": None}
 
         # Generate SQL query using LLM with tools
         response = llm_with_tools.invoke(messages)
@@ -282,11 +386,29 @@ def query_executor_node(state: State):
             # Execute the tool
             if tool_name == "execute_sql_query":
                 query = tool_args.get("query", "")
-                result = execute_sql_query(query)
+                result = execute_sql_query.invoke(query)
                 tool_results.append(result)
 
-                # Create a tool message
-                tool_message = ToolMessage(content=result, tool_call_id=tool_call["id"])
+                # Create a tool message - the tool call has an 'id' field
+                tool_call_id = tool_call.get("id")
+                if not tool_call_id:
+                    logger.error(f"Could not find id in tool_call: {tool_call}")
+                    # Generate a unique ID if none exists
+                    import uuid
+
+                    tool_call_id = str(uuid.uuid4())
+
+                # Create a regular AIMessage instead of ToolMessage to avoid Redis serialization issues
+                from langchain_core.messages import AIMessage
+
+                tool_message = AIMessage(
+                    content=f"SQL Query Result: {result}",
+                    additional_kwargs={
+                        "tool_call_id": tool_call_id,
+                        "tool_name": tool_name,
+                        "tool_result": result,
+                    },
+                )
 
                 # Append the tool message to chat history
                 updated_chat_history = chat_history + [tool_message]

@@ -18,7 +18,7 @@ async def chat(request: ChatRequest):
         logger.info(f"Processing query: {request.query}")
 
         # Invoke the orchestrator
-        orchestrator_result = invoke_orchestrator(request.query)
+        orchestrator_result = invoke_orchestrator(request.query, request.user_email)
 
         if "error" in orchestrator_result:
             raise HTTPException(status_code=500, detail=orchestrator_result["error"])
